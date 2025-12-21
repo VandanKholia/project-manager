@@ -12,3 +12,110 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id            Int            @id @default(autoincrement())
+  username      String         @unique @db.VarChar(50)
+  email         String         @unique @db.VarChar(100)
+  passwordHash  String         @db.VarChar(255)
+  createdAt     DateTime       @default(now())
+
+  roles         UserRole[]
+  projects      Project[]      @relation("CreatedProjects")
+  assignedTasks Task[]
+  comments      TaskComment[]
+  history       TaskHistory[]
+}
+
+model Role {
+  id        Int        @id @default(autoincrement())
+  roleName  String     @unique @db.VarChar(50)
+
+  users     UserRole[]
+}
+
+model UserRole {
+  id      Int   @id @default(autoincrement())
+  userId  Int
+  roleId  Int
+
+  user    User  @relation(fields: [userId], references: [id])
+  role    Role  @relation(fields: [roleId], references: [id])
+}
+
+model Project {
+  id          Int        @id @default(autoincrement())
+  projectName String     @db.VarChar(100)
+  description String?    @db.VarChar(255)
+  createdAt   DateTime   @default(now())
+
+  createdById Int
+  createdBy   User       @relation("CreatedProjects", fields: [createdById], references: [id])
+
+  taskLists   TaskList[]
+}
+
+model TaskList {
+  id        Int      @id @default(autoincrement())
+  listName  String   @db.VarChar(100)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  tasks     Task[]
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  priority    Priority
+  status      Status
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+
+  listId      Int
+  list        TaskList @relation(fields: [listId], references: [id])
+
+  assignedToId Int
+  assignedTo   User     @relation(fields: [assignedToId], references: [id])
+
+  comments    TaskComment[]
+  history     TaskHistory[]
+}
+
+model TaskComment {
+  id          Int      @id @default(autoincrement())
+  commentText String   @db.VarChar(255)
+  createdAt   DateTime @default(now())
+
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id])
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model TaskHistory {
+  id         Int      @id @default(autoincrement())
+  changeType String   @db.VarChar(50)
+  changeTime DateTime @default(now())
+
+  taskId   Int
+  task     Task @relation(fields: [taskId], references: [id])
+
+  changedById Int
+  changedBy   User @relation(fields: [changedById], references: [id])
+}
+
+enum Priority {
+  Low
+  Medium
+  High
+}
+
+enum Status {
+  Pending
+  InProgress
+  Completed
+}
